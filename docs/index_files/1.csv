@@ -1,0 +1,9 @@
+ward,parking_complaint,summary,ward-name,median_household_income_dollars,mean_household_income_dollars
+1,true,12157,Ward 1,118395,165893
+2,true,16265,Ward 2,128048,181167
+3,true,4934,Ward 3,141393,223149
+4,true,7569,Ward 4,115068,163531
+5,true,12547,Ward 5,92398,123490
+6,true,16107,Ward 6,133590,169118
+7,true,10433,Ward 7,62243,89172
+8,true,8146,Ward 8,48609,77639
