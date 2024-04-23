@@ -88,28 +88,39 @@ econ-ds
 
 (def comb-ds 
   (-> calls-ds
-    (tc/map-rows (fn [{:keys [servicecodedescription]}] {:parking_complaint (if (str/includes? (str/lower-case servicecodedescription) "parking")
-                                                                              "parking" "not-parking")}))
+    (tc/map-rows (fn [{:keys [servicecodedescription]}] 
+                   {:parking_complaint (if (str/includes? 
+                                            (str/lower-case servicecodedescription) "parking")
+                                         "parking" "not-parking")}))
     (tc/group-by [:ward :parking_complaint])
-    (tc/aggregate {:n tc/row-count}) 
-    (tc/pivot->wider :parking_complaint :n) 
+    (tc/aggregate {:n tc/row-count})))
+  
+  (def pivot-ds 
+    (-> comb-ds
+    (tc/pivot->wider :parking_complaint :n)
       (tc/rename-columns {"parking" :parking
                           "not-parking" :not-parking})
     (tc/inner-join econ-ds :ward)
     (tc/order-by [:ward :parking_complaint])))
 
-comb-ds
-    
 (-> comb-ds
+    (tc/group-by :parking_complaint)
     (hanami/plot ht/bar-chart
                  {:X "ward"
-                  :Y "parking"}))
-(-> comb-ds
-    (hanami/plot ht/bar-chart
-                 {:X "ward"
-                  :Y "not-parking"}))
+                  :Y "n"}))
 
-(-> comb-ds 
+(-> pivot-ds 
+    (hanami/plot ht/bar-chart
+                 {:X "ward"
+                  :Y "mean_household_income_dollars"}))
+(-> pivot-ds
     (hanami/plot ht/bar-chart
                  {:X "ward"
                   :Y "median_household_income_dollars"}))
+
+(-> comb-ds
+    (hanami/plot ht/grouped-bar-chart
+                 {:X "ward" :XTYPE "nominal"
+                  :Y "n"
+                  :COLOR "parking_complaint"}))
+
