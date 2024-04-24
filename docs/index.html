@@ -100,11 +100,11 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </style>
 <style>.clay-limit-image-width .clay-image {max-width: 100%}
 </style>
-<script src="index_files/md-default4.js" type="text/javascript"></script>
 <script src="index_files/md-default5.js" type="text/javascript"></script>
-<script src="index_files/vega6.js" type="text/javascript"></script>
+<script src="index_files/md-default6.js" type="text/javascript"></script>
 <script src="index_files/vega7.js" type="text/javascript"></script>
 <script src="index_files/vega8.js" type="text/javascript"></script>
+<script src="index_files/vega9.js" type="text/javascript"></script>
 <section id="data-preprocessing-and-analysis-with-noj-and-clay" class="level1">
 <h1>Data Preprocessing and Analysis with NOJ and Clay</h1>
 <p>This workbook is based on the podcast episode <a href="https://gimletmedia.com/shows/science-vs/39hzkk">Science VS: Gentrification: What’s really happening?</a>. In the podcast episode, NYC Open Data is used to look at the relationship between economic status and 311 complaints. This analysis attempts to replicate that study using data for Washington DC, USA.</p>
@@ -116,9 +116,10 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a>  (<span class="at">:require</span> [tablecloth.api <span class="at">:as</span> tc]</span>
 <span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a>            [tech.v3.datatype.datetime <span class="at">:as</span> datetime]</span>
 <span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a>            [scicloj.noj.v1.vis.hanami <span class="at">:as</span> hanami]</span>
-<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a>            [aerial.hanami.templates <span class="at">:as</span> ht]</span>
-<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a>            [scicloj.kindly.v4.kind <span class="at">:as</span> kind]</span>
-<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a>            [clojure.string <span class="at">:as</span> <span class="kw">str</span>]))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a>            [aerial.hanami.common <span class="at">:as</span> hc <span class="at">:refer</span> [RMV]]</span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a>            [aerial.hanami.templates <span class="at">:as</span> ht]</span>
+<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a>            [scicloj.kindly.v4.kind <span class="at">:as</span> kind]</span>
+<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a>            [clojure.string <span class="at">:as</span> <span class="kw">str</span>]))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 <p>Columns of interest (see datasource for data dictionary): - dp03_0062e - median household income in US dollars - dp03_0063e - mean household income in US dollars - namelsad - Legal/Statistcal Area Description Code - DC is broken into 8 “wards”.</p>
 <div class="sourceClojure">
@@ -587,7 +588,8 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <div class="sourceClojure">
 <div class="sourceCode" id="cb11"><pre class="sourceCode clojure code-with-copy"><code class="sourceCode clojure"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a>(<span class="kw">-&gt;</span> calls-ds</span>
 <span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a>    (tc/unique-by <span class="at">:servicecodedescription</span>)</span>
-<span id="cb11-3"><a href="#cb11-3" aria-hidden="true" tabindex="-1"></a>    (tc/select-rows (<span class="kw">fn</span> [row] (<span class="kw">let</span> [desc (str/lower-case (row <span class="at">:servicecodedescription</span>))] (str/includes? desc <span class="st">"dockless"</span>)))))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb11-3"><a href="#cb11-3" aria-hidden="true" tabindex="-1"></a>    (tc/select-rows (<span class="kw">fn</span> [row] (<span class="kw">let</span> [desc (str/lower-case (row <span class="at">:servicecodedescription</span>))] </span>
+<span id="cb11-4"><a href="#cb11-4" aria-hidden="true" tabindex="-1"></a>                                (str/includes? desc <span class="st">"dockless"</span>)))))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 <div class="clay-dataset">
 <p>data/311_City_Service_Requests_in_2022.csv.gz [1 5]:</p>
@@ -620,92 +622,125 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </table>
 </div>
 <div class="sourceClojure">
-<div class="sourceCode" id="cb12"><pre class="sourceCode clojure code-with-copy"><code class="sourceCode clojure"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a>(<span class="kw">-&gt;</span> calls-ds</span>
-<span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a>    (tc/map-rows (<span class="kw">fn</span> [{<span class="at">:keys</span> [servicecodedescription]}] {<span class="at">:parking</span>_complaint (<span class="kw">if</span> (str/includes? (str/lower-case servicecodedescription) <span class="st">"parking"</span>)</span>
-<span id="cb12-3"><a href="#cb12-3" aria-hidden="true" tabindex="-1"></a>                                                                              <span class="st">"parking"</span> <span class="st">"not-parking"</span>)}))</span>
-<span id="cb12-4"><a href="#cb12-4" aria-hidden="true" tabindex="-1"></a>    (tc/group-by [<span class="at">:ward</span> <span class="at">:parking</span>_complaint])</span>
-<span id="cb12-5"><a href="#cb12-5" aria-hidden="true" tabindex="-1"></a>    (tc/aggregate {<span class="at">:n</span> tc/row-count}) </span>
-<span id="cb12-6"><a href="#cb12-6" aria-hidden="true" tabindex="-1"></a>    (tc/pivot-&gt;wider <span class="at">:parking</span>_complaint <span class="at">:n</span>))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode" id="cb12"><pre class="sourceCode clojure code-with-copy"><code class="sourceCode clojure"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a>(<span class="bu">defn</span><span class="fu"> complaint-categorizer</span></span>
+<span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a>  [{<span class="at">:keys</span> [servicecodedescription]}]</span>
+<span id="cb12-3"><a href="#cb12-3" aria-hidden="true" tabindex="-1"></a>  {<span class="at">:complaint-type</span> </span>
+<span id="cb12-4"><a href="#cb12-4" aria-hidden="true" tabindex="-1"></a>   (<span class="kw">let</span> [desc (str/lower-case servicecodedescription)]</span>
+<span id="cb12-5"><a href="#cb12-5" aria-hidden="true" tabindex="-1"></a>    (<span class="kw">if</span> (<span class="kw">or</span> (str/includes? desc <span class="st">"parking"</span>)</span>
+<span id="cb12-6"><a href="#cb12-6" aria-hidden="true" tabindex="-1"></a>            (str/includes? desc <span class="st">"abandoned vehicle"</span>)) <span class="st">"parking"</span></span>
+<span id="cb12-7"><a href="#cb12-7" aria-hidden="true" tabindex="-1"></a>        (<span class="kw">if</span> (<span class="kw">or</span> (str/includes? desc <span class="st">"dumping"</span>)</span>
+<span id="cb12-8"><a href="#cb12-8" aria-hidden="true" tabindex="-1"></a>                (str/includes? desc <span class="st">"trash"</span>)) <span class="st">"trash"</span> </span>
+<span id="cb12-9"><a href="#cb12-9" aria-hidden="true" tabindex="-1"></a>            (<span class="kw">if</span> (str/includes? desc <span class="st">"dockless"</span>) <span class="st">"dockless"</span></span>
+<span id="cb12-10"><a href="#cb12-10" aria-hidden="true" tabindex="-1"></a>                <span class="st">"other"</span>))))})</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<div class="sourceClojure">
+<div class="sourceCode" id="cb13"><pre class="sourceCode clojure code-with-copy"><code class="sourceCode clojure"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a>(<span class="bu">def</span><span class="fu"> complaints-cats</span></span>
+<span id="cb13-2"><a href="#cb13-2" aria-hidden="true" tabindex="-1"></a>  (<span class="kw">-&gt;</span> calls-ds</span>
+<span id="cb13-3"><a href="#cb13-3" aria-hidden="true" tabindex="-1"></a>      (tc/map-rows complaint-categorizer) </span>
+<span id="cb13-4"><a href="#cb13-4" aria-hidden="true" tabindex="-1"></a>      (tc/group-by [<span class="at">:ward</span> <span class="at">:complaint-type</span>]) </span>
+<span id="cb13-5"><a href="#cb13-5" aria-hidden="true" tabindex="-1"></a>      (tc/aggregate {<span class="at">:n</span> tc/row-count})))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<div class="sourceClojure">
+<div class="sourceCode" id="cb14"><pre class="sourceCode clojure code-with-copy"><code class="sourceCode clojure"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a>(<span class="kw">-&gt;</span> complaints-cats</span>
+<span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a>  (tc/pivot-&gt;wider <span class="at">:complaint-type</span> <span class="at">:n</span>))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 <div class="clay-dataset">
-<p>_unnamed [8 3]:</p>
+<p>_unnamed [8 5]:</p>
 <table class="table">
 <thead>
 <tr class="header">
 <th style="text-align: right;">:ward</th>
-<th style="text-align: right;">not-parking</th>
+<th style="text-align: right;">trash</th>
+<th style="text-align: right;">other</th>
 <th style="text-align: right;">parking</th>
+<th style="text-align: right;">dockless</th>
 </tr>
 </thead>
 <tbody>
 <tr class="odd">
 <td style="text-align: right;">5</td>
-<td style="text-align: right;">46196</td>
-<td style="text-align: right;">12547</td>
-</tr>
-<tr class="even">
-<td style="text-align: right;">6</td>
-<td style="text-align: right;">36516</td>
-<td style="text-align: right;">16107</td>
-</tr>
-<tr class="odd">
-<td style="text-align: right;">1</td>
-<td style="text-align: right;">35503</td>
-<td style="text-align: right;">12157</td>
+<td style="text-align: right;">6848</td>
+<td style="text-align: right;">37623</td>
+<td style="text-align: right;">14191</td>
+<td style="text-align: right;">81</td>
 </tr>
 <tr class="even">
 <td style="text-align: right;">8</td>
-<td style="text-align: right;">31099</td>
-<td style="text-align: right;">8146</td>
+<td style="text-align: right;">2990</td>
+<td style="text-align: right;">26045</td>
+<td style="text-align: right;">10145</td>
+<td style="text-align: right;">65</td>
 </tr>
 <tr class="odd">
 <td style="text-align: right;">2</td>
-<td style="text-align: right;">30743</td>
-<td style="text-align: right;">16265</td>
+<td style="text-align: right;">3544</td>
+<td style="text-align: right;">26548</td>
+<td style="text-align: right;">16747</td>
+<td style="text-align: right;">169</td>
 </tr>
 <tr class="even">
-<td style="text-align: right;">7</td>
-<td style="text-align: right;">42581</td>
-<td style="text-align: right;">10433</td>
+<td style="text-align: right;">6</td>
+<td style="text-align: right;">5176</td>
+<td style="text-align: right;">30486</td>
+<td style="text-align: right;">16896</td>
+<td style="text-align: right;">65</td>
 </tr>
 <tr class="odd">
-<td style="text-align: right;">4</td>
-<td style="text-align: right;">46081</td>
-<td style="text-align: right;">7569</td>
+<td style="text-align: right;">7</td>
+<td style="text-align: right;">5785</td>
+<td style="text-align: right;">34525</td>
+<td style="text-align: right;">12632</td>
+<td style="text-align: right;">72</td>
 </tr>
 <tr class="even">
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">5179</td>
+<td style="text-align: right;">29542</td>
+<td style="text-align: right;">12683</td>
+<td style="text-align: right;">256</td>
+</tr>
+<tr class="odd">
 <td style="text-align: right;">3</td>
-<td style="text-align: right;">27345</td>
-<td style="text-align: right;">4934</td>
+<td style="text-align: right;">1977</td>
+<td style="text-align: right;">24901</td>
+<td style="text-align: right;">5323</td>
+<td style="text-align: right;">78</td>
+</tr>
+<tr class="even">
+<td style="text-align: right;">4</td>
+<td style="text-align: right;">5041</td>
+<td style="text-align: right;">39916</td>
+<td style="text-align: right;">8647</td>
+<td style="text-align: right;">46</td>
 </tr>
 </tbody>
 </table>
 </div>
 <div class="sourceClojure">
-<div class="sourceCode" id="cb13"><pre class="sourceCode clojure code-with-copy"><code class="sourceCode clojure"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a>(<span class="bu">def</span><span class="fu"> comb-ds </span></span>
-<span id="cb13-2"><a href="#cb13-2" aria-hidden="true" tabindex="-1"></a>  (<span class="kw">-&gt;</span> calls-ds</span>
-<span id="cb13-3"><a href="#cb13-3" aria-hidden="true" tabindex="-1"></a>    (tc/map-rows (<span class="kw">fn</span> [{<span class="at">:keys</span> [servicecodedescription]}] </span>
-<span id="cb13-4"><a href="#cb13-4" aria-hidden="true" tabindex="-1"></a>                   {<span class="at">:parking</span>_complaint (<span class="kw">if</span> (str/includes? </span>
-<span id="cb13-5"><a href="#cb13-5" aria-hidden="true" tabindex="-1"></a>                                            (str/lower-case servicecodedescription) <span class="st">"parking"</span>)</span>
-<span id="cb13-6"><a href="#cb13-6" aria-hidden="true" tabindex="-1"></a>                                         <span class="st">"parking"</span> <span class="st">"not-parking"</span>)}))</span>
-<span id="cb13-7"><a href="#cb13-7" aria-hidden="true" tabindex="-1"></a>    (tc/group-by [<span class="at">:ward</span> <span class="at">:parking</span>_complaint])</span>
-<span id="cb13-8"><a href="#cb13-8" aria-hidden="true" tabindex="-1"></a>    (tc/aggregate {<span class="at">:n</span> tc/row-count})))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode" id="cb15"><pre class="sourceCode clojure code-with-copy"><code class="sourceCode clojure"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a>(<span class="bu">def</span><span class="fu"> parking-ds </span></span>
+<span id="cb15-2"><a href="#cb15-2" aria-hidden="true" tabindex="-1"></a>  (<span class="kw">-&gt;</span> calls-ds</span>
+<span id="cb15-3"><a href="#cb15-3" aria-hidden="true" tabindex="-1"></a>    (tc/map-rows (<span class="kw">fn</span> [{<span class="at">:keys</span> [servicecodedescription]}] </span>
+<span id="cb15-4"><a href="#cb15-4" aria-hidden="true" tabindex="-1"></a>                   {<span class="at">:parking</span>_complaint (<span class="kw">if</span> (str/includes? </span>
+<span id="cb15-5"><a href="#cb15-5" aria-hidden="true" tabindex="-1"></a>                                            (str/lower-case servicecodedescription) <span class="st">"parking"</span>)</span>
+<span id="cb15-6"><a href="#cb15-6" aria-hidden="true" tabindex="-1"></a>                                         <span class="st">"parking"</span> <span class="st">"not-parking"</span>)}))</span>
+<span id="cb15-7"><a href="#cb15-7" aria-hidden="true" tabindex="-1"></a>    (tc/group-by [<span class="at">:ward</span> <span class="at">:parking</span>_complaint])</span>
+<span id="cb15-8"><a href="#cb15-8" aria-hidden="true" tabindex="-1"></a>    (tc/aggregate {<span class="at">:n</span> tc/row-count})))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 <div class="sourceClojure">
-<div class="sourceCode" id="cb14"><pre class="sourceCode clojure code-with-copy"><code class="sourceCode clojure"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a>(<span class="bu">def</span><span class="fu"> pivot-ds </span></span>
-<span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a>    (<span class="kw">-&gt;</span> comb-ds</span>
-<span id="cb14-3"><a href="#cb14-3" aria-hidden="true" tabindex="-1"></a>    (tc/pivot-&gt;wider <span class="at">:parking</span>_complaint <span class="at">:n</span>)</span>
-<span id="cb14-4"><a href="#cb14-4" aria-hidden="true" tabindex="-1"></a>      (tc/rename-columns {<span class="st">"parking"</span> <span class="at">:parking</span></span>
-<span id="cb14-5"><a href="#cb14-5" aria-hidden="true" tabindex="-1"></a>                          <span class="st">"not-parking"</span> <span class="at">:not-parking</span>})</span>
-<span id="cb14-6"><a href="#cb14-6" aria-hidden="true" tabindex="-1"></a>    (tc/inner-join econ-ds <span class="at">:ward</span>)</span>
-<span id="cb14-7"><a href="#cb14-7" aria-hidden="true" tabindex="-1"></a>    (tc/order-by [<span class="at">:ward</span> <span class="at">:parking</span>_complaint])))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode" id="cb16"><pre class="sourceCode clojure code-with-copy"><code class="sourceCode clojure"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a>(<span class="bu">def</span><span class="fu"> pivot-ds </span></span>
+<span id="cb16-2"><a href="#cb16-2" aria-hidden="true" tabindex="-1"></a>    (<span class="kw">-&gt;</span> parking-ds</span>
+<span id="cb16-3"><a href="#cb16-3" aria-hidden="true" tabindex="-1"></a>    (tc/pivot-&gt;wider <span class="at">:parking</span>_complaint <span class="at">:n</span>)</span>
+<span id="cb16-4"><a href="#cb16-4" aria-hidden="true" tabindex="-1"></a>      (tc/rename-columns {<span class="st">"parking"</span> <span class="at">:parking</span></span>
+<span id="cb16-5"><a href="#cb16-5" aria-hidden="true" tabindex="-1"></a>                          <span class="st">"not-parking"</span> <span class="at">:not-parking</span>})</span>
+<span id="cb16-6"><a href="#cb16-6" aria-hidden="true" tabindex="-1"></a>    (tc/inner-join econ-ds <span class="at">:ward</span>)</span>
+<span id="cb16-7"><a href="#cb16-7" aria-hidden="true" tabindex="-1"></a>    (tc/order-by [<span class="at">:ward</span> <span class="at">:parking</span>_complaint])))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 <div class="sourceClojure">
-<div class="sourceCode" id="cb15"><pre class="sourceCode clojure code-with-copy"><code class="sourceCode clojure"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a>(<span class="kw">-&gt;</span> comb-ds</span>
-<span id="cb15-2"><a href="#cb15-2" aria-hidden="true" tabindex="-1"></a>    (tc/group-by <span class="at">:parking</span>_complaint)</span>
-<span id="cb15-3"><a href="#cb15-3" aria-hidden="true" tabindex="-1"></a>    (hanami/plot ht/bar-chart</span>
-<span id="cb15-4"><a href="#cb15-4" aria-hidden="true" tabindex="-1"></a>                 {<span class="at">:X</span> <span class="st">"ward"</span></span>
-<span id="cb15-5"><a href="#cb15-5" aria-hidden="true" tabindex="-1"></a>                  <span class="at">:Y</span> <span class="st">"n"</span>}))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode" id="cb17"><pre class="sourceCode clojure code-with-copy"><code class="sourceCode clojure"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true" tabindex="-1"></a>(<span class="kw">-&gt;</span> parking-ds</span>
+<span id="cb17-2"><a href="#cb17-2" aria-hidden="true" tabindex="-1"></a>    (tc/group-by <span class="at">:parking</span>_complaint)</span>
+<span id="cb17-3"><a href="#cb17-3" aria-hidden="true" tabindex="-1"></a>    (hanami/plot ht/bar-chart</span>
+<span id="cb17-4"><a href="#cb17-4" aria-hidden="true" tabindex="-1"></a>                 {<span class="at">:X</span> <span class="st">"ward"</span></span>
+<span id="cb17-5"><a href="#cb17-5" aria-hidden="true" tabindex="-1"></a>                  <span class="at">:Y</span> <span class="st">"n"</span>}))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 <div class="clay-table">
 <div>
@@ -740,27 +775,46 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </div>
 </div>
 <div class="sourceClojure">
-<div class="sourceCode" id="cb16"><pre class="sourceCode clojure code-with-copy"><code class="sourceCode clojure"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a>(<span class="kw">-&gt;</span> pivot-ds </span>
-<span id="cb16-2"><a href="#cb16-2" aria-hidden="true" tabindex="-1"></a>    (hanami/plot ht/bar-chart</span>
-<span id="cb16-3"><a href="#cb16-3" aria-hidden="true" tabindex="-1"></a>                 {<span class="at">:X</span> <span class="st">"ward"</span></span>
-<span id="cb16-4"><a href="#cb16-4" aria-hidden="true" tabindex="-1"></a>                  <span class="at">:Y</span> <span class="st">"mean_household_income_dollars"</span>}))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode" id="cb18"><pre class="sourceCode clojure code-with-copy"><code class="sourceCode clojure"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true" tabindex="-1"></a>(<span class="kw">-&gt;</span> pivot-ds </span>
+<span id="cb18-2"><a href="#cb18-2" aria-hidden="true" tabindex="-1"></a>    (hanami/plot ht/bar-chart</span>
+<span id="cb18-3"><a href="#cb18-3" aria-hidden="true" tabindex="-1"></a>                 {<span class="at">:X</span> <span class="st">"ward"</span></span>
+<span id="cb18-4"><a href="#cb18-4" aria-hidden="true" tabindex="-1"></a>                  <span class="at">:Y</span> <span class="st">"mean_household_income_dollars"</span>}))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 <div><script>vegaEmbed(document.currentScript.parentElement, {"encoding":{"y":{"field":"mean_household_income_dollars","type":"quantitative"},"x":{"field":"ward","type":"quantitative"}},"usermeta":{"embedOptions":{"renderer":"svg"}},"mark":{"type":"bar","tooltip":true},"width":400,"background":"floralwhite","height":300,"data":{"url":"index_files\/2.csv","format":{"type":"csv"}}});</script></div>
 <div class="sourceClojure">
-<div class="sourceCode" id="cb17"><pre class="sourceCode clojure code-with-copy"><code class="sourceCode clojure"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true" tabindex="-1"></a>(<span class="kw">-&gt;</span> pivot-ds</span>
-<span id="cb17-2"><a href="#cb17-2" aria-hidden="true" tabindex="-1"></a>    (hanami/plot ht/bar-chart</span>
-<span id="cb17-3"><a href="#cb17-3" aria-hidden="true" tabindex="-1"></a>                 {<span class="at">:X</span> <span class="st">"ward"</span></span>
-<span id="cb17-4"><a href="#cb17-4" aria-hidden="true" tabindex="-1"></a>                  <span class="at">:Y</span> <span class="st">"median_household_income_dollars"</span>}))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode" id="cb19"><pre class="sourceCode clojure code-with-copy"><code class="sourceCode clojure"><span id="cb19-1"><a href="#cb19-1" aria-hidden="true" tabindex="-1"></a>(<span class="kw">-&gt;</span> pivot-ds</span>
+<span id="cb19-2"><a href="#cb19-2" aria-hidden="true" tabindex="-1"></a>    (hanami/plot ht/bar-chart</span>
+<span id="cb19-3"><a href="#cb19-3" aria-hidden="true" tabindex="-1"></a>                 {<span class="at">:X</span> <span class="st">"ward"</span></span>
+<span id="cb19-4"><a href="#cb19-4" aria-hidden="true" tabindex="-1"></a>                  <span class="at">:Y</span> <span class="st">"median_household_income_dollars"</span>}))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 <div><script>vegaEmbed(document.currentScript.parentElement, {"encoding":{"y":{"field":"median_household_income_dollars","type":"quantitative"},"x":{"field":"ward","type":"quantitative"}},"usermeta":{"embedOptions":{"renderer":"svg"}},"mark":{"type":"bar","tooltip":true},"width":400,"background":"floralwhite","height":300,"data":{"url":"index_files\/2.csv","format":{"type":"csv"}}});</script></div>
+<p>Thanks Daniel!</p>
 <div class="sourceClojure">
-<div class="sourceCode" id="cb18"><pre class="sourceCode clojure code-with-copy"><code class="sourceCode clojure"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true" tabindex="-1"></a>(<span class="kw">-&gt;</span> comb-ds</span>
-<span id="cb18-2"><a href="#cb18-2" aria-hidden="true" tabindex="-1"></a>    (hanami/plot ht/grouped-bar-chart</span>
-<span id="cb18-3"><a href="#cb18-3" aria-hidden="true" tabindex="-1"></a>                 {<span class="at">:X</span> <span class="st">"ward"</span> <span class="at">:XTYPE</span> <span class="st">"nominal"</span></span>
-<span id="cb18-4"><a href="#cb18-4" aria-hidden="true" tabindex="-1"></a>                  <span class="at">:Y</span> <span class="st">"n"</span></span>
-<span id="cb18-5"><a href="#cb18-5" aria-hidden="true" tabindex="-1"></a>                  <span class="at">:COLOR</span> <span class="st">"parking_complaint"</span>}))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode" id="cb20"><pre class="sourceCode clojure code-with-copy"><code class="sourceCode clojure"><span id="cb20-1"><a href="#cb20-1" aria-hidden="true" tabindex="-1"></a>(<span class="bu">def</span><span class="fu"> grouped-bar-chart-with-offset</span></span>
+<span id="cb20-2"><a href="#cb20-2" aria-hidden="true" tabindex="-1"></a>  (<span class="kw">assoc</span> ht/grouped-bar-chart</span>
+<span id="cb20-3"><a href="#cb20-3" aria-hidden="true" tabindex="-1"></a>         <span class="at">:aerial.hanami.templates/defaults</span></span>
+<span id="cb20-4"><a href="#cb20-4" aria-hidden="true" tabindex="-1"></a>         {<span class="at">:ENCODING</span> (<span class="kw">assoc</span> ht/xy-encoding</span>
+<span id="cb20-5"><a href="#cb20-5" aria-hidden="true" tabindex="-1"></a>                           <span class="at">:xOffset</span> {<span class="at">:field</span> <span class="at">:XOFFSET</span></span>
+<span id="cb20-6"><a href="#cb20-6" aria-hidden="true" tabindex="-1"></a>                                     <span class="at">:type</span> <span class="st">"nominal"</span>})}))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
-<div><script>vegaEmbed(document.currentScript.parentElement, {"encoding":{"y":{"field":"n","type":"quantitative"},"color":{"field":"parking_complaint","type":"nominal"},"x":{"field":"ward","type":"nominal"}},"usermeta":{"embedOptions":{"renderer":"svg"}},"mark":{"type":"bar","tooltip":true},"width":400,"background":"floralwhite","height":300,"data":{"url":"index_files\/3.csv","format":{"type":"csv"}}});</script></div>
+<div class="sourceClojure">
+<div class="sourceCode" id="cb21"><pre class="sourceCode clojure code-with-copy"><code class="sourceCode clojure"><span id="cb21-1"><a href="#cb21-1" aria-hidden="true" tabindex="-1"></a>(<span class="kw">-&gt;</span> parking-ds</span>
+<span id="cb21-2"><a href="#cb21-2" aria-hidden="true" tabindex="-1"></a>    (hanami/plot grouped-bar-chart-with-offset</span>
+<span id="cb21-3"><a href="#cb21-3" aria-hidden="true" tabindex="-1"></a>                 {<span class="at">:X</span> <span class="st">"ward"</span> <span class="at">:XTYPE</span> <span class="st">"nominal"</span></span>
+<span id="cb21-4"><a href="#cb21-4" aria-hidden="true" tabindex="-1"></a>                  <span class="at">:Y</span> <span class="st">"n"</span> <span class="at">:YTYPE</span> <span class="st">"quantitative"</span></span>
+<span id="cb21-5"><a href="#cb21-5" aria-hidden="true" tabindex="-1"></a>                  <span class="at">:COLOR</span> <span class="st">"parking_complaint"</span></span>
+<span id="cb21-6"><a href="#cb21-6" aria-hidden="true" tabindex="-1"></a>                  <span class="at">:XOFFSET</span> <span class="st">"parking_complaint"</span>}))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<div><script>vegaEmbed(document.currentScript.parentElement, {"encoding":{"y":{"field":"n","type":"quantitative"},"color":{"field":"parking_complaint","type":"nominal"},"x":{"field":"ward","type":"nominal"},"xOffset":{"field":"parking_complaint","type":"nominal"}},"usermeta":{"embedOptions":{"renderer":"svg"}},"mark":{"type":"bar","tooltip":true},"width":400,"background":"floralwhite","height":300,"data":{"url":"index_files\/3.csv","format":{"type":"csv"}}});</script></div>
+<div class="sourceClojure">
+<div class="sourceCode" id="cb22"><pre class="sourceCode clojure code-with-copy"><code class="sourceCode clojure"><span id="cb22-1"><a href="#cb22-1" aria-hidden="true" tabindex="-1"></a>(<span class="kw">-&gt;</span> complaints-cats</span>
+<span id="cb22-2"><a href="#cb22-2" aria-hidden="true" tabindex="-1"></a>    (hanami/plot grouped-bar-chart-with-offset</span>
+<span id="cb22-3"><a href="#cb22-3" aria-hidden="true" tabindex="-1"></a>                 {<span class="at">:X</span> <span class="st">"ward"</span> <span class="at">:XTYPE</span> <span class="st">"nominal"</span></span>
+<span id="cb22-4"><a href="#cb22-4" aria-hidden="true" tabindex="-1"></a>                  <span class="at">:Y</span> <span class="st">"n"</span> <span class="at">:YTYPE</span> <span class="st">"quantitative"</span></span>
+<span id="cb22-5"><a href="#cb22-5" aria-hidden="true" tabindex="-1"></a>                  <span class="at">:COLOR</span> <span class="st">"complaint-type"</span></span>
+<span id="cb22-6"><a href="#cb22-6" aria-hidden="true" tabindex="-1"></a>                  <span class="at">:XOFFSET</span> <span class="st">"complaint-type"</span>}))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<div><script>vegaEmbed(document.currentScript.parentElement, {"encoding":{"y":{"field":"n","type":"quantitative"},"color":{"field":"complaint-type","type":"nominal"},"x":{"field":"ward","type":"nominal"},"xOffset":{"field":"complaint-type","type":"nominal"}},"usermeta":{"embedOptions":{"renderer":"svg"}},"mark":{"type":"bar","tooltip":true},"width":400,"background":"floralwhite","height":300,"data":{"url":"index_files\/4.csv","format":{"type":"csv"}}});</script></div>
 <div style="background-color:grey;height:2px;width:100%;"></div>
 <div><pre><small><small>source: <a href="/blob/main/notebooks/index.clj">notebooks/index.clj</a></small></small></pre></div>
 </section>
